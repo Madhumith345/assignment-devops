@@ -1,0 +1,38 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/key.pem
+          chmod 600 ~/.ssh/key.pem
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Copy app to server
+        run: |
+          scp -i ~/.ssh/key.pem -r app ubuntu@${{ secrets.EC2_HOST }}:/tmp/assignment-app
+
+      - name: Deploy
+        run: |
+          ssh -i ~/.ssh/key.pem ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io
+            sudo systemctl enable docker
+            sudo systemctl start docker
+
+            sudo rm -rf /opt/assignment-app
+            sudo mv /tmp/assignment-app /opt/assignment-app
+
+            sudo docker rm -f assignment-app || true
+            sudo docker build -t assignment-app:latest /opt/assignment-app
+            sudo docker run -d --restart=always -p 80:80 --name assignment-app assignment-app:latest
+          EOF
