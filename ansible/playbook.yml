@@ -1,0 +1,37 @@
+- hosts: web
+  become: true
+  tasks:
+    - name: Update apt
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Enable Docker
+      systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Create app directory
+      file:
+        path: /opt/assignment-app
+        state: directory
+
+    - name: Copy app files
+      copy:
+        src: ../app/
+        dest: /opt/assignment-app/
+
+    - name: Build Docker image
+      command: docker build -t assignment-app:latest /opt/assignment-app
+
+    - name: Remove old container if exists
+      command: docker rm -f assignment-app
+      ignore_errors: true
+
+    - name: Run container
+      command: docker run -d --restart=always -p 80:80 --name assignment-app assignment-app:latest
