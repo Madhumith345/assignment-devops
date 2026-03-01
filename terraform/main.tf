@@ -22,12 +22,12 @@ resource "aws_security_group" "app_sg" {
   description = "Allow SSH and HTTP"
 
   ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = [var.my_ip_cidr]
-  }
+  description = "SSH"
+  from_port   = 22
+  to_port     = 22
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+}
 
   ingress {
     description = "HTTP"
@@ -50,5 +50,5 @@ resource "aws_instance" "app_vm" {
   instance_type          = var.instance_type
   key_name               = var.key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
-  tags = { Name = "assignment-app-vm" }
+  tags                   = { Name = "assignment-app-vm" }
 }
